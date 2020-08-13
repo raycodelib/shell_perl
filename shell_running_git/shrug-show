@@ -1,0 +1,51 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+# if [ "$2" = "a" ]
+if  [ $# != 1 ]
+then
+    echo "Usage: $0 [commitID]:filename"
+    exit 1
+else
+    if echo "$1" | egrep "([0-9]|):[a-zA-z0-9]" >/dev/null   
+    then
+        commitID=`echo "$1" | cut -d':' -f1`
+        filename=`echo "$1" | cut -d':' -f2`
+        if test "$commitID" = ""  ##   :a.txt print 0-2/a.txt
+        then
+            showpath=$indexpath/$filename
+            if test -e "$showpath"
+            then 
+                cat "$showpath"
+            else   
+                echo "$0: error: '$filename' not found in index"
+            fi                    
+        else   ## 1:a.txt  print 1/a.txt
+            if test -e "$repopath/$commitID"
+            then 
+                showpath="$repopath/$commitID/$filename"
+                if test -e "$showpath"
+                then 
+                    cat "$showpath"
+                else   
+                    echo "$0: error: '$filename' not found in commit $commitID"
+                fi
+            else
+                echo "$0: error: unknown commit '$commitID'"
+            fi
+        fi
+    else
+        echo "$0: error: please enter correct [commitID]:filename"
+        exit 1
+    fi
+fi

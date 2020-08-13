@@ -1,0 +1,267 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+if test $# = 0 
+then
+    echo "Usage: $0 [--force] [--cached] <files>"
+    exit 1    
+else
+    cacheflag=0
+    forceflag=0
+    for filename in $@
+    do
+        # echo "$filename"
+        if test $filename = "--cached"
+        then
+            cacheflag=1
+            continue
+        fi
+        if test $filename = "--force"
+        then
+            forceflag=1
+            continue
+        fi
+        if test $forceflag = 1  ## enter force mode
+        then
+            if (test "$1" = "--force") && (test "$2" != "--cached")   ## force to remove both working and index file
+            then
+                indexfile="$indexpath/$filename"
+                if test -e "$indexfile"
+                then
+                    continue    ## 1st for loop only for testing files validation, no remove
+                    # rm "$filename"
+                    # rm "$indexfile"
+                else
+                    echo "$0: error: '$filename' is not in the shrug repository"
+                    exit 1
+                fi
+            elif (test "$1" = "--force") && (test "$2" = "--cached")  ## force to remove index file
+            then
+                indexfile="$indexpath/$filename"
+                if test -e "$indexfile"
+                then
+                    continue    ## 1st for loop only for testing files validation, no remove
+                    # rm "$indexfile"
+                else
+                    echo "$0: error: '$filename' is not in the shrug repository"
+                    exit 1
+                fi
+            else
+                echo "Usage: $0 [--force] [--cached] <files>"
+                exit 1 
+            fi
+        elif (test $forceflag = 0) && (test $cacheflag = 1) 
+        then
+            # echo "enter cached mode"
+            indexfile="$indexpath/$filename"
+            prevcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+            repofile="$repopath/$prevcommitID/$filename"
+            if (test -e "$indexfile") && (test -e "$repofile")
+            then
+                if (diff $indexfile $filename > /dev/null) || (diff $indexfile $repofile > /dev/null)  ## if indexfile same to [filename|repofile], remove indexfile
+                then
+                    continue    ## 1st for loop only for testing files validation, no remove
+                    # rm "$indexfile"         ## same, diff renturn 1; difference, diff return 0
+                elif !(diff $indexfile $repofile > /dev/null) && !(diff $indexfile $filename > /dev/null)  ##if indexfile different to both working and repo file
+                then
+                    echo "$0: error: '$filename' in index is different to both working file and repository"  ## repofile diff to both working and index file
+                    exit 1     
+                else
+                    echo "undefined status: line 73"
+                fi  
+            elif (test -e "$indexfile") && !(test -e "$repofile")
+            then
+                if (diff $indexfile $filename > /dev/null) ## if filename same to indexfile, remove indexfile
+                then
+                    continue    ## 1st for loop only for testing files validation, no remove
+                    # rm "$indexfile"         ## same, diff renturn 1; difference, diff return 0
+                else
+                    echo "$0: error: '$filename' has changes staged in the index"
+                    exit 1
+                fi
+            elif !(test -e "$indexfile") && (test -e "$repofile")
+            then
+                echo "$0: error: '$filename' has changes staged in the index"    ## filename does not exist in latest repo
+                exit 1 
+            else
+                echo "$0: error: '$filename' is not in the shrug repository"
+                exit 1
+            fi
+        else         
+            # echo "enter no flag mode"                        
+            indexfile="$indexpath/$filename"
+            prevcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+            repofile="$repopath/$prevcommitID/$filename"
+            if (test -e "$indexfile") && (test -e "$repofile")
+            then
+                if (diff $indexfile $repofile > /dev/null) && (diff $filename $repofile > /dev/null) ## indexfile same to both working and repofile
+                then
+                    continue    ## 1st for loop only for testing files validation, no remove
+                    # rm "$indexfile"         ## same, diff renturn 1; difference, diff return 0
+                    # if test -e "$filename"
+                    # then
+                    #     rm "$filename"
+                    # fi
+                elif !(diff $indexfile $repofile > /dev/null) && !(diff $indexfile $filename > /dev/null)
+                then
+                    echo "$0: error: '$filename' in index is different to both working file and repository"  ## repofile diff to both working and index file
+                    exit 1    
+                elif !(diff $indexfile $repofile > /dev/null) && (diff $indexfile $filename > /dev/null)      
+                then
+                    echo "$0: error: '$filename' has changes staged in the index"    ## indexfile only diff with repofile
+                    exit 1                                
+                elif (diff $indexfile $repofile > /dev/null) && !(diff $filename $repofile > /dev/null)
+                then
+                    echo "$0: error: '$filename' in repository is different to working file"    ## repofile only diff working file
+                    exit 1  
+                else
+                    echo "undefined status: line 119"
+                fi  
+            elif (test -e "$indexfile") && !(test -e "$repofile")
+            then
+                echo "$0: error: '$filename' has changes staged in the index"    ## filename does not exist in latest repo
+                exit 1 
+            elif !(test -e "$indexfile") && (test -e "$repofile")
+            then
+                echo "$0: error: '$filename' has changes staged in the index"    ## filename does not exist in latest repo
+                exit 1 
+            else
+                echo "$0: error: '$filename' is not in the shrug repository"
+                exit 1
+            fi
+        fi
+    done
+
+    ## if we can pass 1st for loop, that means all files are safe to remove, then remove them
+    for filename in $@
+    do
+        # echo "$filename"
+        if test $filename = "--cached"
+        then
+            cacheflag=1
+            continue
+        fi
+        if test $filename = "--force"
+        then
+            forceflag=1
+            continue
+        fi
+        if test $forceflag = 1  ## enter force mode
+        then
+            if (test "$1" = "--force") && (test "$2" != "--cached")   ## force to remove both working and index file
+            then
+                indexfile="$indexpath/$filename"
+                if test -e "$indexfile"
+                then
+                    rm "$filename"
+                    rm "$indexfile"
+                else
+                    echo "$0: error: '$filename' is not in the shrug repository"
+                    exit 1
+                fi
+            elif (test "$1" = "--force") && (test "$2" = "--cached")  ## force to remove index file
+            then
+                indexfile="$indexpath/$filename"
+                if test -e "$indexfile"
+                then
+                    rm "$indexfile"
+                else
+                    echo "$0: error: '$filename' is not in the shrug repository"
+                    exit 1
+                fi
+            else
+                echo "Usage: $0 [--force] [--cached] <files>"
+                exit 1 
+            fi
+        elif (test $forceflag = 0) && (test $cacheflag = 1) 
+        then
+            # echo "enter cached mode"
+            indexfile="$indexpath/$filename"
+            prevcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+            repofile="$repopath/$prevcommitID/$filename"
+            if (test -e "$indexfile") && (test -e "$repofile")
+            then
+                if (diff $indexfile $filename > /dev/null) || (diff $indexfile $repofile > /dev/null)  ## if indexfile same to [filename|repofile], remove indexfile
+                then
+                    rm "$indexfile"         ## same, diff renturn 1; difference, diff return 0
+                elif !(diff $indexfile $repofile > /dev/null) && !(diff $indexfile $filename > /dev/null)  ##if indexfile different to both working and repo file
+                then
+                    echo "$0: error: '$filename' in index is different to both working file and repository"  ## repofile diff to both working and index file
+                    exit 1     
+                else
+                    echo "undefined status: line 73"
+                fi  
+            elif (test -e "$indexfile") && !(test -e "$repofile")
+            then
+                if (diff $indexfile $filename > /dev/null) ## if filename same to indexfile, remove indexfile
+                then
+                    rm "$indexfile"         ## same, diff renturn 1; difference, diff return 0
+                else
+                    echo "$0: error: '$filename' has changes staged in the index"
+                    exit 1
+                fi
+            elif !(test -e "$indexfile") && (test -e "$repofile")
+            then
+                echo "$0: error: '$filename' has changes staged in the index"    ## filename does not exist in latest repo
+                exit 1 
+            else
+                echo "$0: error: '$filename' is not in the shrug repository"
+                exit 1
+            fi
+        else         
+            # echo "enter no flag mode"                        
+            indexfile="$indexpath/$filename"
+            prevcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+            repofile="$repopath/$prevcommitID/$filename"
+            if (test -e "$indexfile") && (test -e "$repofile")
+            then
+                if (diff $indexfile $repofile > /dev/null) && (diff $filename $repofile > /dev/null) ## indexfile same to both working and repofile
+                then
+                    rm "$indexfile"         ## same, diff renturn 1; difference, diff return 0
+                    if test -e "$filename"
+                    then
+                        rm "$filename"
+                    fi
+                elif !(diff $indexfile $repofile > /dev/null) && !(diff $indexfile $filename > /dev/null)
+                then
+                    echo "$0: error: '$filename' in index is different to both working file and repository"  ## repofile diff to both working and index file
+                    exit 1    
+                elif !(diff $indexfile $repofile > /dev/null) && (diff $indexfile $filename > /dev/null)      
+                then
+                    echo "$0: error: '$filename' has changes staged in the index"    ## indexfile only diff with repofile
+                    exit 1                                
+                elif (diff $indexfile $repofile > /dev/null) && !(diff $filename $repofile > /dev/null)
+                then
+                    echo "$0: error: '$filename' in repository is different to working file"    ## repofile only diff working file
+                    exit 1  
+                else
+                    echo "undefined status: line 119"
+                fi  
+            elif (test -e "$indexfile") && !(test -e "$repofile")
+            then
+                echo "$0: error: '$filename' has changes staged in the index"    ## filename does not exist in latest repo
+                exit 1 
+            elif !(test -e "$indexfile") && (test -e "$repofile")
+            then
+                echo "$0: error: '$filename' has changes staged in the index"    ## filename does not exist in latest repo
+                exit 1 
+            else
+                echo "$0: error: '$filename' is not in the shrug repository"
+                exit 1
+            fi
+        fi
+    done
+fi
+
+
+

@@ -1,0 +1,27 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+if test -e $initdir
+then 
+    echo "$0: error: $initdir already exists"
+    exit 1
+else
+    mkdir -p "$initdir"
+    mkdir -p "$repopath"
+    mkdir -p "$indexpath"
+    mkdir -p "$branchpath"
+    touch "$logfile"
+    echo "$branchpath/master" >"$initdir/HEAD"   ## .shrug/.branch/master > .shrug/HEAD
+    echo "Initialized empty $repodir repository in $initdir"
+    exit 0
+fi

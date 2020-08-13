@@ -1,0 +1,25 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+if test $# -gt 0
+then
+    echo "Usage: $0"
+else 
+    if test -e $logfile
+    then
+        cat $logfile | sort -r
+    else
+        echo "$0: error: no $logfile exists"  
+        exit 1  
+    fi
+fi

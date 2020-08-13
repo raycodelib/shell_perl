@@ -1,0 +1,70 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+if test -e $repopath/0
+then
+    if test $# = 0
+    then
+        # echo "enter listing mode"
+        for branch in $branchpath/*   ## branch = ./shrug/.branch/b1
+        do
+            branch=`echo $branch | sed -E "s/.*.branch\///"`   
+            echo "$branch"
+        done
+    elif test $# -eq 1
+    then
+        # echo "enter create branch mode"
+        if test -e $branchpath/$1
+        then
+            echo "$0: error: branch '$1' already exists"
+            exit 1
+        else
+            # mkdir -p "$branchpath/$1"
+            curbranch=`cat $initdir/HEAD` 
+            cat $curbranch >"$branchpath/$1"
+        fi
+    elif test $# -eq 2
+    then
+        if test $1 = "-d"
+        then
+            # echo "enter delete branch mode"
+            if test $2 = "master"
+            then 
+                echo "$0: error: can not delete branch 'master'"
+                exit 1
+            else
+                if test -e $branchpath/$2
+                then
+                    # rm -r $branchpath/$2
+                    rm $branchpath/$2
+                    echo "Deleted branch '$2'"
+                else
+                    echo "$0: error: branch '$2' does not exist"
+                fi
+            fi
+        else
+            echo "Usage: $0 [-d] <branch-name>"
+            exit 1
+        fi
+    else
+        echo "Usage: $0 [-d] <branch-name>"
+        exit 1
+    fi
+else
+    echo "$0: error: your repository does not have any commits yet"
+    exit 1
+fi
+
+
+
+

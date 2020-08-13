@@ -1,0 +1,54 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+
+if test $# -gt 0
+then 
+    if test -e $initdir && test -e $repopath
+    then
+        if test -e $indexpath
+        then
+            for file in $@
+            do                 ## check filename is valid
+                if echo "$file" | egrep "^[a-zA-Z0-9]" >/dev/null && echo "$file" | egrep "^[a-zA-Z0-9_\.\-]+$" >/dev/null  
+                then  
+                    if test -e $file
+                    then
+                        cp $file $indexpath
+                    elif !(test -e $file) && test -e "$indexpath/$file"
+                    then
+                        rm "$indexpath/$file"
+                    else
+                        echo "$0: error: can not open '$file'"
+                        exit 1
+                    fi              
+                else
+                    echo "$0: error: invalid filename '$file'"
+                    exit 1              
+                fi
+            done         
+        else
+            echo "$0: error: no $indexpath exists"  
+            exit 1  
+        fi
+    
+    else
+        echo "$0: error: no $initdir directory containing $repodir repository exists"
+        exit 1
+    fi
+else
+    echo "Usage: $0 <file> ... <file>"
+    exit 1
+fi
+
+

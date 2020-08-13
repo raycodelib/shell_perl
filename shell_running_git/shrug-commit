@@ -1,0 +1,122 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+
+if test $# = 2 
+then
+    if test "$1" = "-m"
+    then
+        if test -e $initdir && test -e $repopath
+        then
+            ## find the next commitID
+            lastestcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+            if test -z $lastestcommitID
+            # if test "$precommitID" = ""
+            then
+                mkdir "$repopath/0"
+                for file in $indexpath/*
+                do
+                    cp $file $repopath/0
+                done
+                echo "0 $2" >> $logfile    ## append     0 first commit      to logfile
+                curbranch=`cat $initdir/HEAD`    ## curbranch = .shrug/.branch/master
+                echo "$repopath/0" >$curbranch   ## write repoID into master tracker
+
+                echo "Committed as commit 0"                
+            else
+                lastestrepo="$repopath/$lastestcommitID"
+                if diff $indexpath $lastestrepo > /dev/null
+                then
+                    echo "nothing to commit"          ## no commit if files are not changed
+                    exit 1
+                else
+                    commitID=$((lastestcommitID + 1))
+                    mkdir "$repopath/$commitID"
+                    if [ "$(ls -A $indexpath)" ]
+                    then
+                        for file in $indexpath/*
+                        do
+                            cp $file $repopath/$commitID
+                        done
+                    fi
+                    echo "$commitID $2" >> $logfile    ## append     1 second commit      to logfile
+                    curbranch=`cat $initdir/HEAD`   ## curbranch = .shrug/.branch/master or .shrug/.branch/b1
+                    echo "$repopath/$commitID" >$curbranch  ## write repoID into branchname                    
+                    echo "Committed as commit $commitID"                    
+                fi
+            fi
+        else
+            echo "$0: error: no $initdir directory containing $repodir repository exists"
+            exit 1
+        fi
+    else
+        echo "Usage: $0 [-a] -m 'message'"
+        exit 1        
+    fi
+elif test $# = 3
+then
+    if test "$1" = "-a" && test "$2" = "-m"
+    then
+        ## shrug-add all current directory files to index
+        shrug-add *
+        if test -e $initdir && test -e $repopath
+        then
+            ## find the next commitID
+            lastestcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+            if test -z $lastestcommitID
+            # if test "$precommitID" = ""
+            then
+                mkdir "$repopath/0"
+                for file in $indexpath/*
+                do
+                    cp $file $repopath/0
+                done
+                echo "0 $2" >> $logfile    ## append     0 first commit      to logfile
+                curbranch=`cat $initdir/HEAD`    ## curbranch = .shrug/.branch/master
+                echo "$repopath/0" >$curbranch   ## write repoID into master tracker
+
+                echo "Committed as commit 0"                
+            else
+                lastestrepo="$repopath/$lastestcommitID"
+                if diff $indexpath $lastestrepo > /dev/null
+                then
+                    echo "nothing to commit"          ## no commit if files are not changed
+                    exit 1
+                else
+                    commitID=$((lastestcommitID + 1))
+                    mkdir "$repopath/$commitID"
+                    if [ "$(ls -A $indexpath)" ]
+                    then
+                        for file in $indexpath/*
+                        do
+                            cp $file $repopath/$commitID
+                        done
+                    fi
+                    echo "$commitID $2" >> $logfile    ## append     1 second commit      to logfile
+                    curbranch=`cat $initdir/HEAD`   ## curbranch = .shrug/.branch/master or .shrug/.branch/b1
+                    echo "$repopath/$commitID" >$curbranch  ## write repoID into branchname                    
+                    echo "Committed as commit $commitID"                    
+                fi
+            fi
+        else
+            echo "$0: error: no $initdir directory containing $repodir repository exists"
+            exit 1
+        fi     
+    else
+        echo "Usage: $0 [-a] -m 'message'"
+        exit 1
+    fi
+else
+    echo "Usage: $0 [-a] -m 'message'"
+    exit 1
+fi

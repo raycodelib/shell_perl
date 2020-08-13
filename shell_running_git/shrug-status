@@ -1,0 +1,158 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+
+################    self defined function to compare three files       ###################
+diff3files() {   ### diff $1 $2 means: $1 is same to $2;     !(diff $1 $2) means: $1 is not same to $2
+    if !(diff $1 $2 > /dev/null) && !(diff $1 $3 > /dev/null) && !(diff $2 $3 > /dev/null)
+    then
+        echo "1"  ##all 3 files are different
+    elif (diff $1 $2 > /dev/null) && !(diff $1 $3 > /dev/null) && !(diff $2 $3 > /dev/null)
+    then
+        echo "2"  ## $1 = $2,  $3 is different"
+    elif !(diff $1 $2 > /dev/null) &&  !(diff $1 $3 > /dev/null) && (diff $2 $3 > /dev/null)
+    then
+        echo "3"  ## $2 = $3,  $1 is different"
+    elif !(diff $1 $2 > /dev/null) && (diff $1 $3 > /dev/null) && !(diff $2 $3 > /dev/null)
+    then
+        echo "4"  ## $1 = $3,  $2 is different"
+    elif  (diff $1 $2 > /dev/null) &&  (diff $1 $3 > /dev/null) &&  (diff $2 $3 > /dev/null)
+    then
+        echo "5"  ## all 3 files are same"
+    else
+        echo "undefined status"
+    fi
+}
+##############################################################################################
+
+
+
+if test $# = 0
+then
+    # lastestcommitID=`cat "$logfile" | tail -1 | cut -d' ' -f1`
+    curbranch=`cat $initdir/HEAD`   ## curbranch   = .shrug/.branch/master (or /b1)
+    lastestrepo=`cat $curbranch`    ## lastestrepo = .shrug/shrug/0
+    lsforworking=`ls -A`
+    lsforindex=`ls -A $indexpath`
+    lsforrepo=`ls -A $lastestrepo`
+    if test "$lsforworking" != ".shrug"  ## if working dir is empty, it will only contains .shrug folder(always exist in working dir) 
+    then
+        for filename in *
+        do
+            if echo "$filename" | egrep "^shrug-" >/dev/null
+            then
+                continue
+            fi
+            if echo "$filename" | egrep "^[a-zA-Z0-9]" >/dev/null && echo "$filename" | egrep "^[a-zA-Z0-9_\.\-]+$" >/dev/null
+            then
+                # echo "$filename"
+                indexfile="$indexpath/$filename"
+                repofile="$lastestrepo/$filename"
+
+                if test -e $indexfile && test -e $repofile   ## file a in both working, index and repo
+                then
+                    compareresult=`diff3files $filename $indexfile $repofile`
+                    case $compareresult in 
+                        1)
+                            echo "$filename - file changed, different changes staged for commit" >> temp
+                            ;;
+                        2)
+                            echo "$filename - file changed, changes staged for commit" >> temp
+                            ;;
+                        3)
+                            echo "$filename - file changed, changes not staged for commit" >> temp
+                            ;;
+                        4)
+                            echo "$filename - file changed, different changes staged for commit" >> temp
+                            ;;
+                        5)
+                            echo "$filename - same as repo" >> temp
+                            ;;       
+                        *)
+                            echo "undefined case"  
+                            ;;
+                        esac           
+                elif test -e $indexfile && !(test -e $repofile)  # file a in working and index, not in repo
+                then
+                    if diff $filename $indexfile > /dev/null
+                    then
+                        echo "$filename - added to index" >> temp
+                    else
+                        echo "$filename - added to index, file changed" >> temp
+                    fi
+                elif !(test -e $indexfile) && test -e $repofile  # file a in working and repo, not in index
+                then
+                    if diff $filename $repofile >/dev/null
+                    then
+                        echo "$filename - untracked" >> temp
+                    else
+                        echo "$filename - untracked" >> temp
+                    fi
+                elif !(test -e $indexfile) && !(test -e $repofile)  # file a only in working, not in index and repo
+                then
+                    echo "$filename - untracked" >> temp
+                else
+                    echo "undefined status"
+                fi           
+            else
+                echo "$0: error: invalid filename '$filename'"           
+            fi
+        done
+    fi
+    if test "$lsforindex" != ""  ## if index folder is not empty
+    then
+        for file_index in $indexpath/*    ## file_index = .shrug/index/a
+        do
+            filename=`echo $file_index | sed -E "s/.*index\///"`
+            repofile="$lastestrepo/$filename"   
+            ## only treat with file_index that does not exist in working, existing ones are covered by for loop in working
+            if !(test -e $filename) && test -e $repofile     ## file_index only exist in index and repo
+            then
+                if diff $file_index $repofile > /dev/null   
+                then
+                    echo "$filename - file deleted"  >> temp ## if indexfile is same to repofile
+                else
+                    echo "$filename - file deleted, different changes staged for commit" >> temp
+                fi
+            elif !(test -e $filename) && !(test -e $repofile)  ## file_index exist only in index
+            then
+                echo "$filename - added to index, file deleted" >> temp
+            else
+                continue
+            fi 
+        done
+    fi
+    if test "$lsforrepo" != ""   ## if latest repo folder is not empty
+    then
+        for file_repo in $lastestrepo/*   ## file_repo = .shrug/shrug/0/a
+        do
+            filename=`echo "$file_repo" | sed -E "s/.shrug\/shrug\/(.)\/(.*)/\2/"`   ## \1 = 0   \2 = a
+            indexfile="$indexpath/$filename"
+            ## only treat with file_repo that only exists in repo, other files are covered by for loop in working and index
+            if !(test -e $filename) && !(test -e $indexfile)     ## file_repo only exist in repo
+            then
+                echo "$filename - deleted" >> temp
+            else
+                continue
+            fi
+        done    
+    fi
+    if test -e temp
+    then
+        cat temp | sort
+        rm temp
+    fi
+else
+    echo "Usage: $0"
+    exit 1
+fi

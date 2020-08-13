@@ -1,0 +1,77 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+
+########### self defined function   ############
+update_cwd() 
+{
+    for file1 in *   ## check files in cwd
+    do
+        # echo "$file1"
+        if echo "$file1" | egrep -v "shrug" >/dev/null
+        then
+            if test -e $1/$file1
+            then
+                continue
+            else
+                rm ./$file1
+            fi
+        fi
+    done
+    for file2 in $1/*   ## check files in newrepo
+    do
+        # cat "$file2"   
+        filename=`echo $file2 | sed -E "s/.*shrug\/[0-9]+\///"`      ## file2 = .shrug/shrug/0/a
+        # cat "$filename"
+        if test -e $filename
+        then
+            if !(diff $file2 $filename >/dev/null)    ## same, diff renturn 1; difference, diff return 0
+            then 
+                cp $file2 $filename
+            fi                
+        else
+            cp $file2 .
+        fi
+    done
+}
+################################################
+
+
+if test $# -ne 1
+then
+    echo "Usage: $0 <branch-name>"
+else 
+    if test -e $branchpath/$1
+    then
+        curbranch=`cat $initdir/HEAD`  ## curbranch = ./shrug/.branch/master
+        newbranch="$branchpath/$1"     ## newbranch = ./shrug/.branch/b1
+        currepo=`cat $curbranch`       ## currepo   = .shrug/shrug/0
+        newrepo=`cat $newbranch`       ## newrepo   = .shrug/shrug/0
+        if test $currepo = $newrepo    ## if currepo = newrepo, no changes
+        then
+            continue
+        else
+            update_cwd $newrepo        ## update current working directory compared with newrepo files
+            rm $indexpath/*            ## remove old index cached files
+            cp * $indexpath            ## copy all cwd files into index 
+        fi
+        echo "$branchpath/$1" >$initdir/HEAD
+        echo "Switched to branch '$1'"
+    else
+        echo "$0: error: unknown branch '$1'"
+        exit 1
+    fi
+
+fi
+
+

@@ -1,0 +1,42 @@
+#!/bin/dash
+
+###########      path definition      ##########
+###########     same in each shrug-*  ##########
+initdir=".shrug"
+repodir="shrug"
+repopath="$initdir/$repodir"
+indexpath="$initdir/index"
+logfile="$repopath/commit-log"
+branchdir=".branch"
+branchpath="$initdir/$branchdir"
+################################################
+
+if test $# -lt 3
+then
+    echo "$0: error: empty commit message"
+    exit 1
+else 
+    if test -e $branchpath/$1
+    then
+        curbranch=`cat $initdir/HEAD`  ## curbranch = ./shrug/.branch/master
+        newbranch="$branchpath/$1"     ## newbranch = ./shrug/.branch/b1
+        currepo=`cat $curbranch`       ## currepo   = .shrug/shrug/0
+        newrepo=`cat $newbranch`       ## newrepo   = .shrug/shrug/0
+        for file in *
+        do
+            if echo "$file" | egrep "^[a-zA-Z0-9]" >/dev/null && echo "$file" | egrep "^[a-zA-Z0-9_\.\-]+$" >/dev/null
+            then
+                if !(diff $file $newrepo/$file >/dev/null) 
+                then
+                    cp $newrepo/$file $file
+                    echo "Auto-merging $file"
+                    shrug-add *
+                    shrug-commit -m "$3"
+                fi
+            fi
+        done
+    else
+        echo "$0: error: unknown branch '$1'"  
+        exit 1  
+    fi
+fi
